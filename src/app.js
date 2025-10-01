@@ -1,5 +1,4 @@
 const express = require('express')
-const cors = require('cors')
 const morgan = require('morgan')
 const { sequelize } = require('./models')
 
@@ -8,8 +7,6 @@ const config = require('./config')
 const app = express()
 app.use(express.json()) // for parsing Content-Type: application/json
 app.use(morgan('combined'))
-app.use(cors())
-app.options('*', cors())
 
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');

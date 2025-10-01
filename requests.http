@@ -1,0 +1,25 @@
+@base_url=http://localhost:3030
+###
+POST {{base_url}}/user/register
+Content-Type: application/json
+
+{
+  "email": "a@a.com",
+  "firstname": "string",
+  "lastname": "string",
+  "password": "aaaaaaaa"
+}
+###
+# @name login
+POST {{base_url}}/user/login
+Content-Type: application/json
+
+{
+  "email": "a@a.com",
+  "password": "aaaaaaaa"
+}
+###
+@access_token = {{login.response.body.token}}
+GET {{base_url}}/movies/search?title=titan
+Accept: application/json
+Authorization: Bearer {{access_token}}

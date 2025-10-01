@@ -1,8 +1,6 @@
 const _ = require('lodash')
-const request = require('request')
 const config = require('../config')
 const mockMovies = require('../mocks/movies')
-const get = require('util').promisify(request.get)
 
 const lowerCaseKeys = object => {
   if (!object) {
@@ -12,35 +10,39 @@ const lowerCaseKeys = object => {
     return object.map(lowerCaseKeys)
   }
   return _(object)
-      .mapKeys((value, key) => key.toLowerCase())
-      .mapValues(value => value instanceof Array ? lowerCaseKeys(value) : value)
-      .value()
+    .mapKeys((value, key) => key.toLowerCase())
+    .mapValues(value => value instanceof Array ? lowerCaseKeys(value) : value)
+    .value()
 }
 
 module.exports = {
-  async search (req, res) {
-    if(config.omdbapi.secretKey == null) {
+  async search(req, res) {
+    if (config.omdbapi.secretKey == null) {
       return res.send(mockMovies);
     }
 
     try {
-      const response = await get(`http://www.omdbapi.com/?s=${req.query.title}&plot=full&apikey=${config.omdbapi.secretKey}`)
-      const body = lowerCaseKeys(JSON.parse(response.body))
-      if(!body || !body.search || body.error) {
+      const response = await fetch(`http://www.omdbapi.com/?s=${req.query.title}&plot=full&apikey=${config.omdbapi.secretKey}`)
+      const data = await response.json()
+      const body = lowerCaseKeys(data)
+      if (!body || !body.search || body.error) {
         return res.status(404).send({
           error: body.error || 'No results'
         })
       }
 
-      const moviesToFetch = body.search.map((movie, n = 0) => {
-        return (n < config.omdbapi.maxCalls && n++) ? get(`http://www.omdbapi.com/?i=${movie.imdbid}&plot=full&apikey=${config.omdbapi.secretKey}`) : null
+      const movieDetails = body.search.map(async (movie, index) => {
+        if (index > config.omdbapi.maxCalls) {
+          return movie
+        }
+        const detailResponse = await fetch(`http://www.omdbapi.com/?i=${movie.imdbid}&plot=full&apikey=${config.omdbapi.secretKey}`)
+        return await detailResponse.json()
       })
 
-      const movies = await Promise.all(moviesToFetch.filter(item => !!item));
-      res.send(movies.map(movie => lowerCaseKeys(JSON.parse(movie.body))))
+      res.send(await Promise.all(movieDetails))
 
-    } catch(error) {
-      return res.status(400).send({error})
+    } catch (error) {
+      return res.status(400).send({ error })
     }
   }
 }
