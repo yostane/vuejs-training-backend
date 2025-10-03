@@ -36,7 +36,7 @@ module.exports = {
           return movie
         }
         const detailResponse = await fetch(`http://www.omdbapi.com/?i=${movie.imdbid}&plot=full&apikey=${config.omdbapi.secretKey}`)
-        return await detailResponse.json()
+        return lowerCaseKeys(await detailResponse.json())
       })
 
       res.send(await Promise.all(movieDetails))
